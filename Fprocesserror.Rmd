@@ -1,0 +1,62 @@
+---
+---
+title: "Fprocesserror_CJFAS"
+author: "Lauren Yamane, Will White"
+date: "4/07/2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(colorspace)
+library(RColorBrewer)
+
+```
+Measures of F estimate quality from the SSIPM:  inaccuracy (absolute value of mean value for the 10 fits minus the true value of F.  #Old: note that for inaccuracy, the F=0 estimates were left raw rather than transformed with the above equation)  
+
+```{r fquality}
+#For case where bias is not calculated as an absolute value
+Fest<- read.csv("Fprocess_bias.csv",header=TRUE)
+Fest$Species <- Fest$Specieslist
+Fest$Species <- with(Fest, reorder(Species, M))
+  
+Festbias_gg <- ggplot(data = Fest, aes(x=CV, y=Bias, color = Species))+
+  geom_line() + 
+  labs(x="CV of fishing mortality rate", y="Bias")+ 
+  theme(legend.title=element_blank())+
+  geom_hline(aes(yintercept=0), linetype = "dashed") +
+  stat_summary(fun = "mean", colour = "black", size = 1.3, geom = "line") #+
+ # scale_color_manual(values = pal(17))
+
+Festd_gg <- ggplot(data = Fest, aes(x=CV, y=StDev, color = Species))+
+  geom_line() + 
+  labs(x="CV of fishing mortality rate", y="Standard deviation")+ 
+  theme(legend.title=element_blank())+
+  geom_hline(aes(yintercept=0), linetype = "dashed") +
+  stat_summary(fun = "mean", colour = "black", size = 1.3, geom = "line") #+
+ # scale_color_manual(values = pal(17))
+
+```
+
+
+```{r fig.width=8,fig.height=11}
+#Plots
+Festbias_grid <- plot_grid(Festbias_gg, Festd_gg, labels = c("A", "B"), ncol = 1)
+
+save_plot("Fest_bias_Aug2024.pdf", Festbias_grid,
+          ncol = 1, # we're saving a grid plot of 2 columns
+          nrow = 2, # and 2 rows
+          # each individual subplot should have an aspect ratio of 0.85
+          base_aspect_ratio = 0.9
+          )
+```
+
+
