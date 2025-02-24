@@ -10,19 +10,20 @@ function postproc_pisco_rockfish_fit_2(Meta_savename,Chains)
 % specified in Meta.MCMC.chains
 
 % What plots to make?
-Plotchains = true;
+Plotchains = false;
 Plotfinal = true;
-saveplots = true;
+saveplots = false;
 
 % Choose the directory to be used, depending on what type of run is
 % analyzed
-Dir ='runs/';
+%Dir ='runs/';
 %Dir = 'mockdata_fits/'; % for mockdata runs
+Dir = 'SMYS_data_fits/';
 
 % Load in metadata
 
 load(strcat(Dir,Meta_savename))
-load(strcat(Dir,Meta.data_savename),'D_str','Species_Names','Years')
+load(strcat(Meta.data_savename),'D_str','Species_Names','Years')
 
 plot_savename = Meta.fit_savename(1:end-4); % trim off '.mat'
 timeseries_plotname = strcat(plot_savename,'.eps');
@@ -113,9 +114,9 @@ if exist('Chains','var') && ~isnan(Chains)
    end
    mc_str = mc_str_tmp;
 else
-load(strcat(Meta.fit_savename))
+load(strcat(Dir,Meta.fit_savename))
 chains = length(mc_str);
-end
+end % end if Chains
 
 %Dir = 'NA';
 if strcmp(Dir,'mockdata_fits/') % if doing mockdata
@@ -123,7 +124,7 @@ if strcmp(Dir,'mockdata_fits/') % if doing mockdata
 else
 NT = mc_str(1).NT;
 NT = NT(:,1:length(Meta.Tdata));
-end
+end % end if doing mock
 
 
 if strcmp(Dir,'mockdata_fits/')
@@ -187,7 +188,7 @@ elseif strcmp(Meta_savename(6),'m') % simulated data
     Years = [10, 17, 18];
 
 elseif strcmp(Meta_savename(6),'A')  % Andrew Molera
-PlotSites = 1
+PlotSites = 1;
 
 % which years to plot
     if ~isnan(Meta.Tpre) % pre2007 runs
@@ -204,7 +205,6 @@ else strcmp(Meta_savename(6),'V')
     else % post2007 runs
         Years = 4:6;
     end
-        end
 
 end % end switch over site
    
@@ -231,10 +231,12 @@ FS = 8;
 if any(PlotSites==s) % if we are in one of the sites to be plotted
     
 for y = 1:NumY
-subplot(NumY,length(PlotSites),Panel(y,find(PlotSites==s)))
+subplot(NumY,length(PlotSites),Panel(y,(PlotSites==s)))
 hold on
-sum(Nact(:,Years(y)))
+sum(Nact(:,Years(y))*diff(x(1:2)))
 sum(Npred(:,Years(y))*diff(x(1:2)).*NT(s,Years(y)-length(Tpre)))
+
+Samplesize = sum(Nact(:,Years(y)));
 
 if strcmp(Dir,'mockdata_fits/') % if doing mockdata:
 % data was binned by 3 cm, but treated as continuous
@@ -243,7 +245,9 @@ bar(x,Nact(:,Years(y))./(3/diff(x(1:2))),(3/diff(x(1:2))),'facecolor',[0.6 0.6 0
 
 %keyboard
 else % real data
-bar(x,Nact(:,Years(y))./diff(x(1:2)),(diff(x(1:2))),'facecolor',[0.6 0.6 0.6],'edgecolor',[0.6 0.6 0.6])
+%bar(x,Nact(:,Years(y))./diff(x(1:2)),(diff(x(1:2))),'facecolor',[0.6 0.6 0.6],'edgecolor',[0.6 0.6 0.6])
+bar(x,Nact(:,Years(y)),(diff(x(1:2))),'facecolor',[0.6 0.6 0.6],'edgecolor',[0.6 0.6 0.6])
+
 end
 
 % Aggregate IPM density to make it comparable to the scale of the data histogram
@@ -266,10 +270,15 @@ if strcmp(Dir,'mockdata_fits/') % if doing mockdata:
    
 end
     
-% Plot the raw density:
-plot(x,Npred(:,Years(y)).*NT(s,Years(y)-length(Tpre)),'k','linewidth',1) 
+% Plot the raw density, with ogive correction
+Ogive = 1-normcdf(x,Meta.ogive(1),Meta.ogive(2));
+plot(x,Npred(:,Years(y)).*Ogive(:).*NT(s,Years(y)-length(Tpre)),'k','linewidth',1) 
 set(gca,'tickdir','out','ticklength',[0.02 0.02],'fontsize',FS)
 set(gca,'xlim',[0 70])
+
+sum(Npred(:,Years(y)).*Ogive(:)*diff(x(1:2)).*NT(s,Years(y)-length(Tpre)))
+
+text(60,10,strcat('n = ',num2str(Samplesize)));
 
 if strcmp(Dir,'mockdata_fits/') 
 set(gca,'ylim',[0 20])
